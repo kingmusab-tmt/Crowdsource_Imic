@@ -11,6 +11,7 @@ export enum View {
     MARKETPLACE = 'Marketplace',
     EVENTS = 'Events',
     NOTIFICATIONS = 'Notifications',
+    PROFILE = 'Profile',
     ADMIN = 'Admin',
 }
 
@@ -121,6 +122,9 @@ export interface Member {
     contributionStatus: 'Paid' | 'Pending';
     isAdmin: boolean;
     withdrawnProfit: number;
+    email: string;
+    phone: string;
+    bio: string;
 }
 
 export interface Activity {

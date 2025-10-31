@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
-import { INVESTMENTS, CONTRIBUTIONS, CURRENT_USER, BANKS } from '../constants';
+import { INVESTMENTS, CONTRIBUTIONS, BANKS } from '../constants';
+import { Member } from '../types';
 
-const Withdrawal: React.FC = () => {
+interface WithdrawalProps {
+    currentUser: Member;
+}
+
+const Withdrawal: React.FC<WithdrawalProps> = ({ currentUser }) => {
     // Calculate profit share logic, same as dashboard
     const totalInvested = INVESTMENTS.reduce((acc, inv) => acc + inv.amountInvested, 0);
     const currentValue = INVESTMENTS.reduce((acc, inv) => acc + inv.currentValue, 0);
     const communityProfit = currentValue - totalInvested;
     const totalContributions = CONTRIBUTIONS.reduce((acc, c) => acc + c.amount, 0);
-    const myTotalContribution = CONTRIBUTIONS.filter(c => c.memberId === CURRENT_USER.id).reduce((acc, c) => acc + c.amount, 0);
+    const myTotalContribution = CONTRIBUTIONS.filter(c => c.memberId === currentUser.id).reduce((acc, c) => acc + c.amount, 0);
     const myProfitShare = totalContributions > 0 ? (myTotalContribution / totalContributions) * communityProfit : 0;
-    const availableProfit = myProfitShare - CURRENT_USER.withdrawnProfit;
+    const availableProfit = myProfitShare - currentUser.withdrawnProfit;
 
     const [withdrawAmount, setWithdrawAmount] = useState<string>('');
     const [selectedBank, setSelectedBank] = useState<string>('');

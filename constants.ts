@@ -19,13 +19,11 @@ import {
 } from './types';
 
 export const MEMBERS: Member[] = [
-    { id: 1, name: 'Admin User', avatarUrl: 'https://i.pravatar.cc/150?u=1', contributionStatus: 'Paid', isAdmin: true, withdrawnProfit: 50 },
-    { id: 2, name: 'Alice Johnson', avatarUrl: 'https://i.pravatar.cc/150?u=2', contributionStatus: 'Paid', isAdmin: false, withdrawnProfit: 75 },
-    { id: 3, name: 'Bob Williams', avatarUrl: 'https://i.pravatar.cc/150?u=3', contributionStatus: 'Pending', isAdmin: false, withdrawnProfit: 20 },
-    { id: 4, name: 'Charlie Brown', avatarUrl: 'https://i.pravatar.cc/150?u=4', contributionStatus: 'Paid', isAdmin: false, withdrawnProfit: 100 },
+    { id: 1, name: 'Admin User', avatarUrl: 'https://i.pravatar.cc/150?u=1', contributionStatus: 'Paid', isAdmin: true, withdrawnProfit: 50, email: 'admin@clubapp.com', phone: '123-456-7890', bio: 'Founding member and administrator for the Investment Club. Passionate about collaborative finance and technology.' },
+    { id: 2, name: 'Alice Johnson', avatarUrl: 'https://i.pravatar.cc/150?u=2', contributionStatus: 'Paid', isAdmin: false, withdrawnProfit: 75, email: 'alice.j@clubapp.com', phone: '234-567-8901', bio: 'Web developer and UI/UX enthusiast. Excited to see our collective investments grow.' },
+    { id: 3, name: 'Bob Williams', avatarUrl: 'https://i.pravatar.cc/150?u=3', contributionStatus: 'Pending', isAdmin: false, withdrawnProfit: 20, email: 'bob.w@clubapp.com', phone: '345-678-9012', bio: 'Backend engineer specializing in Python. I handle the data, you handle the decisions.' },
+    { id: 4, name: 'Charlie Brown', avatarUrl: 'https://i.pravatar.cc/150?u=4', contributionStatus: 'Paid', isAdmin: false, withdrawnProfit: 100, email: 'charlie.b@clubapp.com', phone: '456-789-0123', bio: 'Financial consultant for a major firm. Here to share insights and learn from the group.' },
 ];
-
-export const CURRENT_USER = MEMBERS[0];
 
 export const CONTRIBUTIONS: Contribution[] = [
     { id: 1, memberId: 2, amount: 100, date: '2023-10-01' },

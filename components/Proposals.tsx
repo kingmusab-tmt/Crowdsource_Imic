@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MEMBERS } from '../constants';
-import { Proposal, ProposalStatus } from '../types';
+import { Proposal, ProposalStatus, Member } from '../types';
 import Modal from './Modal';
 
 const statusColorMap: { [key in ProposalStatus]: string } = {
@@ -18,12 +18,13 @@ const statusTextColorMap: { [key in ProposalStatus]: string } = {
 const ProposalCard: React.FC<{
     proposal: Proposal;
     onVote: (proposalId: number, vote: 'for' | 'against') => void;
-}> = ({ proposal, onVote }) => {
+    currentUser: Member;
+}> = ({ proposal, onVote, currentUser }) => {
     const proposer = MEMBERS.find(m => m.id === proposal.proposedBy);
     const totalVotes = proposal.votesFor + proposal.votesAgainst;
     const forPercentage = totalVotes > 0 ? (proposal.votesFor / totalVotes) * 100 : 0;
     const againstPercentage = totalVotes > 0 ? (proposal.votesAgainst / totalVotes) * 100 : 0;
-    const currentUserVoted = proposal.votedIds.includes(1); // Assuming current user has id 1
+    const currentUserVoted = proposal.votedIds.includes(currentUser.id);
 
     return (
         <div className={`bg-gray-800 rounded-lg shadow-lg border-l-4 ${statusColorMap[proposal.status]} p-6`}>
@@ -77,24 +78,25 @@ const ProposalCard: React.FC<{
 };
 
 interface ProposalsProps {
+    currentUser: Member;
     proposals: Proposal[];
     setProposals: React.Dispatch<React.SetStateAction<Proposal[]>>;
     onAddProposal: (title: string, description: string) => void;
 }
 
-const Proposals: React.FC<ProposalsProps> = ({ proposals, setProposals, onAddProposal }) => {
+const Proposals: React.FC<ProposalsProps> = ({ currentUser, proposals, setProposals, onAddProposal }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newProposal, setNewProposal] = useState({ title: '', description: '' });
     
     const handleVote = (proposalId: number, vote: 'for' | 'against') => {
         setProposals(prevProposals => 
             prevProposals.map(p => {
-                if (p.id === proposalId && !p.votedIds.includes(1)) {
+                if (p.id === proposalId && !p.votedIds.includes(currentUser.id)) {
                     return {
                         ...p,
                         votesFor: vote === 'for' ? p.votesFor + 1 : p.votesFor,
                         votesAgainst: vote === 'against' ? p.votesAgainst + 1 : p.votesAgainst,
-                        votedIds: [...p.votedIds, 1]
+                        votedIds: [...p.votedIds, currentUser.id]
                     };
                 }
                 return p;
@@ -128,7 +130,7 @@ const Proposals: React.FC<ProposalsProps> = ({ proposals, setProposals, onAddPro
                 </button>
             </div>
             {proposals.map(p => (
-                <ProposalCard key={p.id} proposal={p} onVote={handleVote} />
+                <ProposalCard key={p.id} proposal={p} onVote={handleVote} currentUser={currentUser} />
             ))}
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { BusinessListing, BusinessStatus } from '../types';
 import { MEMBERS } from '../constants';
@@ -6,7 +5,7 @@ import Modal from './Modal';
 
 interface MarketplaceProps {
     businessListings: BusinessListing[];
-    setBusinessListings: React.Dispatch<React.SetStateAction<BusinessListing[]>>;
+    onAddBusiness: (newListing: Omit<BusinessListing, 'id' | 'ownerId' | 'status'>) => void;
 }
 
 const BusinessCard: React.FC<{ listing: BusinessListing }> = ({ listing }) => {
@@ -35,7 +34,7 @@ const BusinessCard: React.FC<{ listing: BusinessListing }> = ({ listing }) => {
     );
 }
 
-const Marketplace: React.FC<MarketplaceProps> = ({ businessListings, setBusinessListings }) => {
+const Marketplace: React.FC<MarketplaceProps> = ({ businessListings, onAddBusiness }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newListing, setNewListing] = useState({ name: '', description: '', website: '', contact: '' });
 
@@ -49,13 +48,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ businessListings, setBusiness
             alert('Please fill in all required fields.');
             return;
         }
-        const newBusiness: BusinessListing = {
-            id: Date.now(),
-            ...newListing,
-            ownerId: 1, // Assume Admin user is submitting
-            status: BusinessStatus.PENDING,
-        };
-        setBusinessListings(prev => [...prev, newBusiness]);
+        onAddBusiness(newListing);
         setIsModalOpen(false);
         setNewListing({ name: '', description: '', website: '', contact: '' });
     };

@@ -2,10 +2,11 @@ import React from 'react';
 import StatCard from './StatCard';
 import ActivityFeed from './ActivityFeed';
 import GeminiInsight from './GeminiInsight';
-import { INVESTMENTS, CONTRIBUTIONS, CURRENT_USER, MEMBERS, FUND_USAGE } from '../constants';
-import { FundUsage } from '../types';
+import { INVESTMENTS, CONTRIBUTIONS, MEMBERS, FUND_USAGE } from '../constants';
+import { FundUsage, Member } from '../types';
 
 interface DashboardProps {
+    currentUser: Member;
     isReminderSet: boolean;
     setIsReminderSet: (value: boolean) => void;
 }
@@ -24,7 +25,7 @@ const FundUsageIcon: React.FC<{ type: FundUsage['type'] }> = ({ type }) => {
 }
 
 
-const Dashboard: React.FC<DashboardProps> = ({ isReminderSet, setIsReminderSet }) => {
+const Dashboard: React.FC<DashboardProps> = ({ currentUser, isReminderSet, setIsReminderSet }) => {
     // --- Calculations ---
     const totalInvested = INVESTMENTS.reduce((acc, inv) => acc + inv.amountInvested, 0);
     const currentValue = INVESTMENTS.reduce((acc, inv) => acc + inv.currentValue, 0);
@@ -32,10 +33,10 @@ const Dashboard: React.FC<DashboardProps> = ({ isReminderSet, setIsReminderSet }
     const isProfitPositive = communityProfit >= 0;
 
     const totalContributions = CONTRIBUTIONS.reduce((acc, c) => acc + c.amount, 0);
-    const myTotalContribution = CONTRIBUTIONS.filter(c => c.memberId === CURRENT_USER.id).reduce((acc, c) => acc + c.amount, 0);
+    const myTotalContribution = CONTRIBUTIONS.filter(c => c.memberId === currentUser.id).reduce((acc, c) => acc + c.amount, 0);
     
     const myProfitShare = totalContributions > 0 ? (myTotalContribution / totalContributions) * communityProfit : 0;
-    const myWithdrawnProfit = CURRENT_USER.withdrawnProfit;
+    const myWithdrawnProfit = currentUser.withdrawnProfit;
 
     const memberOfTheMonth = MEMBERS.find(m => m.id === 2); // Static for now
 
@@ -44,7 +45,7 @@ const Dashboard: React.FC<DashboardProps> = ({ isReminderSet, setIsReminderSet }
             <div className="flex flex-wrap justify-between items-start gap-4">
                 <div>
                     <h2 className="text-3xl font-bold text-white">Dashboard</h2>
-                    <p className="text-gray-400 mt-1">Welcome back, {CURRENT_USER.name}. Here's a snapshot of your club's performance.</p>
+                    <p className="text-gray-400 mt-1">Welcome back, {currentUser.name}. Here's a snapshot of your club's performance.</p>
                 </div>
                 <button 
                     onClick={() => setIsReminderSet(!isReminderSet)}

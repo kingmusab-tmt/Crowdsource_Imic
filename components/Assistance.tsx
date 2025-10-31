@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { FinancialAssistanceRequest, AssistanceRequestStatus } from '../types';
+import { FinancialAssistanceRequest, AssistanceRequestStatus, Member } from '../types';
 import { MEMBERS } from '../constants';
 import Modal from './Modal';
 
 interface AssistanceProps {
+    currentUser: Member;
     requests: FinancialAssistanceRequest[];
     onAddRequest: (amount: number, purpose: string) => void;
     onVote: (requestId: number, vote: 'for' | 'against') => void;
@@ -21,12 +22,16 @@ const statusTextColorMap: { [key in AssistanceRequestStatus]: string } = {
     [AssistanceRequestStatus.REJECTED]: 'text-red-400',
 };
 
-const AssistanceRequestCard: React.FC<{ request: FinancialAssistanceRequest; onVote: (requestId: number, vote: 'for' | 'against') => void; }> = ({ request, onVote }) => {
+const AssistanceRequestCard: React.FC<{ 
+    request: FinancialAssistanceRequest; 
+    onVote: (requestId: number, vote: 'for' | 'against') => void; 
+    currentUser: Member;
+}> = ({ request, onVote, currentUser }) => {
     const requester = MEMBERS.find(m => m.id === request.requesterId);
     const totalVotes = request.votesFor + request.votesAgainst;
     const forPercentage = totalVotes > 0 ? (request.votesFor / totalVotes) * 100 : 0;
     const againstPercentage = totalVotes > 0 ? (request.votesAgainst / totalVotes) * 100 : 0;
-    const currentUserVoted = request.votedIds.includes(1); // Assuming current user has id 1
+    const currentUserVoted = request.votedIds.includes(currentUser.id);
 
     return (
         <div className={`bg-gray-800 rounded-lg shadow-lg border-l-4 ${statusColorMap[request.status]} p-6`}>
@@ -70,7 +75,7 @@ const AssistanceRequestCard: React.FC<{ request: FinancialAssistanceRequest; onV
     );
 };
 
-const Assistance: React.FC<AssistanceProps> = ({ requests, onAddRequest, onVote }) => {
+const Assistance: React.FC<AssistanceProps> = ({ currentUser, requests, onAddRequest, onVote }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newRequest, setNewRequest] = useState({ amount: '', purpose: '' });
 
@@ -102,7 +107,7 @@ const Assistance: React.FC<AssistanceProps> = ({ requests, onAddRequest, onVote 
             </div>
 
             {requests.map(req => (
-                <AssistanceRequestCard key={req.id} request={req} onVote={onVote} />
+                <AssistanceRequestCard key={req.id} request={req} onVote={onVote} currentUser={currentUser} />
             ))}
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
