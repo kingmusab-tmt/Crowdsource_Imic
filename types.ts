@@ -10,9 +10,46 @@ export enum View {
     ASSISTANCE = 'Assistance',
     MARKETPLACE = 'Marketplace',
     EVENTS = 'Events',
+    DIRECTORY = 'Directory',
     NOTIFICATIONS = 'Notifications',
     PROFILE = 'Profile',
     ADMIN = 'Admin',
+}
+
+export enum Role {
+    ADMIN = 'Admin',
+    TREASURER = 'Treasurer',
+    MEMBER = 'Member',
+}
+
+export enum CommentableItemType {
+    PROPOSAL = 'proposal',
+    BUSINESS_LISTING = 'business_listing',
+    EVENT = 'event',
+    ASSISTANCE_REQUEST = 'assistance_request',
+}
+
+export enum SearchResultType {
+    MEMBER = 'Member',
+    PROPOSAL = 'Proposal',
+    INVESTMENT = 'Investment',
+    EVENT = 'Event',
+    BUSINESS = 'Business Listing',
+}
+
+export interface SearchResult {
+    id: number | string;
+    title: string;
+    subtitle: string;
+    type: SearchResultType;
+    view: View;
+}
+
+export interface Comment {
+    id: number;
+    authorId: number;
+    content: string;
+    timestamp: string;
 }
 
 export enum ProposalStatus {
@@ -30,6 +67,7 @@ export interface Proposal {
     votesFor: number;
     votesAgainst: number;
     votedIds: number[];
+    comments: Comment[];
 }
 
 export enum BusinessStatus {
@@ -46,6 +84,7 @@ export interface BusinessListing {
     website?: string;
     contact: string;
     status: BusinessStatus;
+    comments: Comment[];
 }
 
 export enum EventStatus {
@@ -64,6 +103,7 @@ export interface Event {
     type: 'In-Person' | 'Online';
     status: EventStatus;
     submittedBy: number;
+    comments: Comment[];
 }
 
 export enum NotificationType {
@@ -97,6 +137,7 @@ export interface FinancialAssistanceRequest {
     votesAgainst: number;
     votedIds: number[];
     requestDate: string;
+    comments: Comment[];
 }
 
 export interface Contribution {
@@ -104,6 +145,11 @@ export interface Contribution {
     memberId: number;
     amount: number;
     date: string;
+}
+
+export interface ContributionGoal {
+    targetAmount: number;
+    deadline: string; // e.g., "YYYY-MM-DD"
 }
 
 export interface Investment {
@@ -120,8 +166,9 @@ export interface Member {
     name: string;
     avatarUrl: string;
     contributionStatus: 'Paid' | 'Pending';
-    isAdmin: boolean;
+    role: Role;
     withdrawnProfit: number;
+    availableProfit: number;
     email: string;
     phone: string;
     bio: string;
@@ -147,6 +194,7 @@ export enum TransactionType {
     WITHDRAWAL = 'Withdrawal',
     INVESTMENT = 'Investment',
     REINVESTMENT = 'Reinvestment',
+    EXPENSE = 'Expense',
 }
 
 export enum TransactionStatus {
@@ -157,9 +205,38 @@ export enum TransactionStatus {
 
 export interface Transaction {
     id: number;
+    memberId?: number;
     description: string;
     type: TransactionType;
     status: TransactionStatus;
     date: string;
     amount: number;
+}
+
+export enum WithdrawalStatus {
+    COMPLETED = 'Completed',
+    PENDING = 'Pending',
+    REJECTED = 'Rejected',
+}
+
+export interface WithdrawalRequest {
+    id: number;
+    memberId?: number;
+    amount: number;
+    date: string;
+    status: WithdrawalStatus;
+    bankName: string;
+    accountNumber: string; // Last 4 digits for display
+}
+
+export enum AnnouncementType {
+    INFO = 'Info',
+    URGENT = 'Urgent',
+}
+
+export interface Announcement {
+    id: number;
+    message: string;
+    type: AnnouncementType;
+    timestamp: string;
 }

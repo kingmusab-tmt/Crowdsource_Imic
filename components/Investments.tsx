@@ -6,20 +6,52 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 interface InvestmentsProps {
     investments: Investment[];
+    onAddInvestment: (investment: Omit<Investment, 'id'>) => void;
 }
 
-const Investments: React.FC<InvestmentsProps> = ({ investments }) => {
+const Investments: React.FC<InvestmentsProps> = ({ investments, onAddInvestment }) => {
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [selectedInvestment, setSelectedInvestment] = useState<Investment | null>(null);
+
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const initialFormState = {
+        asset: '',
+        ticker: '',
+        amountInvested: 0,
+        currentValue: 0,
+        shares: 0,
+    };
+    const [newInvestmentData, setNewInvestmentData] = useState<Omit<Investment, 'id'>>(initialFormState);
+
 
     const handleViewHistory = (investment: Investment) => {
         setSelectedInvestment(investment);
         setIsHistoryModalOpen(true);
     };
 
-    const handleCloseModal = () => {
+    const handleCloseHistoryModal = () => {
         setIsHistoryModalOpen(false);
         setSelectedInvestment(null);
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        const isNumeric = ['amountInvested', 'currentValue', 'shares'].includes(name);
+        setNewInvestmentData(prev => ({
+            ...prev,
+            [name]: isNumeric ? parseFloat(value) || 0 : value,
+        }));
+    };
+
+    const handleAddSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newInvestmentData.asset || !newInvestmentData.ticker) {
+            alert('Please fill in at least the Asset Name and Ticker.');
+            return;
+        }
+        onAddInvestment(newInvestmentData);
+        setIsAddModalOpen(false);
+        setNewInvestmentData(initialFormState);
     };
 
     const historyData = selectedInvestment ? INVESTMENT_HISTORY[selectedInvestment.ticker] : [];
@@ -27,7 +59,15 @@ const Investments: React.FC<InvestmentsProps> = ({ investments }) => {
     return (
         <>
             <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
-                <h2 className="text-2xl font-bold text-white mb-6">Investment Portfolio</h2>
+                 <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+                    <h2 className="text-2xl font-bold text-white">Investment Portfolio</h2>
+                    <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105"
+                    >
+                        Add New Investment
+                    </button>
+                </div>
                 <div className="overflow-x-auto">
                     <table className="min-w-full bg-gray-800 text-white">
                         <thead className="bg-gray-700">
@@ -77,7 +117,7 @@ const Investments: React.FC<InvestmentsProps> = ({ investments }) => {
                 </div>
             </div>
 
-            <Modal isOpen={isHistoryModalOpen} onClose={handleCloseModal}>
+            <Modal isOpen={isHistoryModalOpen} onClose={handleCloseHistoryModal}>
                 <h3 className="text-lg font-bold text-white mb-4">
                     Historical Performance for {selectedInvestment?.ticker}
                 </h3>
@@ -94,8 +134,40 @@ const Investments: React.FC<InvestmentsProps> = ({ investments }) => {
                     </ResponsiveContainer>
                 </div>
                 <div className="mt-6 flex justify-end">
-                    <button onClick={handleCloseModal} className="py-2 px-4 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition">Close</button>
+                    <button onClick={handleCloseHistoryModal} className="py-2 px-4 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition">Close</button>
                 </div>
+            </Modal>
+            
+            <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)}>
+                <form onSubmit={handleAddSubmit}>
+                    <h3 className="text-lg font-bold text-white mb-4">Add New Investment</h3>
+                    <div className="space-y-4">
+                        <div>
+                            <label htmlFor="asset" className="block text-sm font-medium text-gray-300">Asset Name</label>
+                            <input type="text" name="asset" id="asset" value={newInvestmentData.asset} onChange={handleInputChange} className="mt-1 w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" required />
+                        </div>
+                        <div>
+                            <label htmlFor="ticker" className="block text-sm font-medium text-gray-300">Ticker Symbol</label>
+                            <input type="text" name="ticker" id="ticker" value={newInvestmentData.ticker} onChange={handleInputChange} className="mt-1 w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" required />
+                        </div>
+                        <div>
+                            <label htmlFor="amountInvested" className="block text-sm font-medium text-gray-300">Amount Invested ($)</label>
+                            <input type="number" name="amountInvested" id="amountInvested" value={newInvestmentData.amountInvested} onChange={handleInputChange} className="mt-1 w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" step="0.01" />
+                        </div>
+                        <div>
+                            <label htmlFor="currentValue" className="block text-sm font-medium text-gray-300">Current Value ($)</label>
+                            <input type="number" name="currentValue" id="currentValue" value={newInvestmentData.currentValue} onChange={handleInputChange} className="mt-1 w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" step="0.01" />
+                        </div>
+                        <div>
+                            <label htmlFor="shares" className="block text-sm font-medium text-gray-300">Shares</label>
+                            <input type="number" name="shares" id="shares" value={newInvestmentData.shares} onChange={handleInputChange} className="mt-1 w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" step="0.01" />
+                        </div>
+                    </div>
+                    <div className="mt-6 flex justify-end space-x-4">
+                        <button type="button" onClick={() => setIsAddModalOpen(false)} className="py-2 px-4 rounded-md text-gray-300 bg-gray-600 hover:bg-gray-500 transition">Cancel</button>
+                        <button type="submit" className="py-2 px-4 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition">Add Investment</button>
+                    </div>
+                </form>
             </Modal>
         </>
     );

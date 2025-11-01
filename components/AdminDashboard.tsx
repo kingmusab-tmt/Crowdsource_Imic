@@ -1,7 +1,8 @@
 import React from 'react';
 import StatCard from './StatCard';
 import { MEMBERS, PROPOSALS, BUSINESS_LISTINGS } from '../constants';
-import { ProposalStatus, BusinessStatus, View } from '../types';
+// Fix: Import Role to use it for checking member roles.
+import { ProposalStatus, BusinessStatus, View, Role } from '../types';
 
 interface AdminDashboardProps {
     setCurrentView: (view: View) => void;
@@ -79,11 +80,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentView }) => {
                                             </span>
                                         </td>
                                         <td className="py-3 px-4">
-                                            {member.isAdmin ? (
-                                                <span className="text-indigo-400 font-semibold">Admin</span>
-                                            ) : (
-                                                'Member'
-                                            )}
+                                            {/* Fix: Replaced non-existent 'isAdmin' property with 'role' property from the Member type. This also correctly displays all roles, not just Admin/Member. */}
+                                            <span className={member.role === Role.ADMIN ? 'text-indigo-400 font-semibold' : ''}>
+                                                {member.role}
+                                            </span>
                                         </td>
                                     </tr>
                                 ))}

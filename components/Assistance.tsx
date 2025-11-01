@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { FinancialAssistanceRequest, AssistanceRequestStatus, Member } from '../types';
+import { FinancialAssistanceRequest, AssistanceRequestStatus, Member, CommentableItemType, Role } from '../types';
 import { MEMBERS } from '../constants';
 import Modal from './Modal';
+import { Comments } from './Proposals';
 
 interface AssistanceProps {
     currentUser: Member;
     requests: FinancialAssistanceRequest[];
     onAddRequest: (amount: number, purpose: string) => void;
     onVote: (requestId: number, vote: 'for' | 'against') => void;
+    onAddComment: (itemId: number, itemType: CommentableItemType, content: string) => void;
+    onDeleteComment: (commentId: number, itemId: number, itemType: CommentableItemType) => void;
 }
 
 const statusColorMap: { [key in AssistanceRequestStatus]: string } = {
@@ -26,7 +29,9 @@ const AssistanceRequestCard: React.FC<{
     request: FinancialAssistanceRequest; 
     onVote: (requestId: number, vote: 'for' | 'against') => void; 
     currentUser: Member;
-}> = ({ request, onVote, currentUser }) => {
+    onAddComment: (content: string) => void;
+    onDeleteComment: (commentId: number) => void;
+}> = ({ request, onVote, currentUser, onAddComment, onDeleteComment }) => {
     const requester = MEMBERS.find(m => m.id === request.requesterId);
     const totalVotes = request.votesFor + request.votesAgainst;
     const forPercentage = totalVotes > 0 ? (request.votesFor / totalVotes) * 100 : 0;
@@ -71,11 +76,17 @@ const AssistanceRequestCard: React.FC<{
                     </button>
                 </div>
             )}
+            <Comments
+                comments={request.comments}
+                onAddComment={onAddComment}
+                onDeleteComment={onDeleteComment}
+                currentUser={currentUser}
+            />
         </div>
     );
 };
 
-const Assistance: React.FC<AssistanceProps> = ({ currentUser, requests, onAddRequest, onVote }) => {
+const Assistance: React.FC<AssistanceProps> = ({ currentUser, requests, onAddRequest, onVote, onAddComment, onDeleteComment }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newRequest, setNewRequest] = useState({ amount: '', purpose: '' });
 
@@ -107,7 +118,14 @@ const Assistance: React.FC<AssistanceProps> = ({ currentUser, requests, onAddReq
             </div>
 
             {requests.map(req => (
-                <AssistanceRequestCard key={req.id} request={req} onVote={onVote} currentUser={currentUser} />
+                <AssistanceRequestCard 
+                    key={req.id} 
+                    request={req} 
+                    onVote={onVote} 
+                    currentUser={currentUser}
+                    onAddComment={(content) => onAddComment(req.id, CommentableItemType.ASSISTANCE_REQUEST, content)}
+                    onDeleteComment={(commentId) => onDeleteComment(commentId, req.id, CommentableItemType.ASSISTANCE_REQUEST)}
+                />
             ))}
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>

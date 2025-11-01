@@ -1,6 +1,5 @@
 import React from 'react';
-import { TRANSACTIONS } from '../constants';
-import { Transaction, TransactionStatus } from '../types';
+import { Transaction, TransactionStatus, Member } from '../types';
 
 const statusColorMap = {
     [TransactionStatus.COMPLETED]: 'bg-green-500/20 text-green-300',
@@ -30,8 +29,14 @@ const TransactionRow: React.FC<{ transaction: Transaction }> = ({ transaction })
     );
 };
 
+interface TransactionsProps {
+    transactions: Transaction[];
+    currentUser: Member;
+}
 
-const Transactions: React.FC = () => {
+const Transactions: React.FC<TransactionsProps> = ({ transactions, currentUser }) => {
+    const userTransactions = transactions.filter(tx => tx.memberId === currentUser.id);
+    
     return (
         <div className="space-y-8">
             <div>
@@ -53,7 +58,7 @@ const Transactions: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="text-gray-300">
-                            {TRANSACTIONS.map(tx => (
+                            {userTransactions.map(tx => (
                                 <TransactionRow key={tx.id} transaction={tx} />
                             ))}
                         </tbody>

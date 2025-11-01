@@ -1,183 +1,126 @@
 import React, { useState } from 'react';
-import { INVESTMENTS, CONTRIBUTIONS, BANKS } from '../constants';
-import { Member } from '../types';
+import { Member, WithdrawalRequest, WithdrawalStatus } from '../types';
+import Modal from './Modal';
 
 interface WithdrawalProps {
     currentUser: Member;
+    withdrawalRequests: WithdrawalRequest[];
+    onAddWithdrawalRequest: (requestData: Omit<WithdrawalRequest, 'id' | 'date' | 'status' | 'memberId'>) => void;
 }
 
-const Withdrawal: React.FC<WithdrawalProps> = ({ currentUser }) => {
-    // Calculate profit share logic, same as dashboard
-    const totalInvested = INVESTMENTS.reduce((acc, inv) => acc + inv.amountInvested, 0);
-    const currentValue = INVESTMENTS.reduce((acc, inv) => acc + inv.currentValue, 0);
-    const communityProfit = currentValue - totalInvested;
-    const totalContributions = CONTRIBUTIONS.reduce((acc, c) => acc + c.amount, 0);
-    const myTotalContribution = CONTRIBUTIONS.filter(c => c.memberId === currentUser.id).reduce((acc, c) => acc + c.amount, 0);
-    const myProfitShare = totalContributions > 0 ? (myTotalContribution / totalContributions) * communityProfit : 0;
-    const availableProfit = myProfitShare - currentUser.withdrawnProfit;
+const statusColorMap: { [key in WithdrawalStatus]: string } = {
+    [WithdrawalStatus.COMPLETED]: 'bg-green-500/20 text-green-300',
+    [WithdrawalStatus.PENDING]: 'bg-yellow-500/20 text-yellow-300',
+    [WithdrawalStatus.REJECTED]: 'bg-red-500/20 text-red-300',
+};
 
-    const [withdrawAmount, setWithdrawAmount] = useState<string>('');
-    const [selectedBank, setSelectedBank] = useState<string>('');
-    const [accountNumber, setAccountNumber] = useState<string>('');
-    const [reinvestAmount, setReinvestAmount] = useState<string>('');
+const Withdrawal: React.FC<WithdrawalProps> = ({ currentUser, withdrawalRequests, onAddWithdrawalRequest }) => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [newRequest, setNewRequest] = useState({
+        amount: '',
+        bankName: 'Chase',
+        accountNumber: '...6789'
+    });
+    
+    const availableForWithdrawal = currentUser.availableProfit;
+    const userWithdrawalHistory = withdrawalRequests.filter(r => r.memberId === currentUser.id);
 
-    const handleWithdrawSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!withdrawAmount || !selectedBank || !accountNumber) {
-            alert('Please fill all withdrawal fields.');
-            return;
-        }
-        if (parseFloat(withdrawAmount) > availableProfit) {
-            alert('Withdrawal amount cannot exceed available profit.');
-            return;
-        }
-        alert(`Withdrawal request for $${withdrawAmount} submitted for account ${accountNumber} at ${selectedBank}.`);
-        setWithdrawAmount('');
-        setSelectedBank('');
-        setAccountNumber('');
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setNewRequest(prev => ({...prev, [name]: value}));
     };
     
-    const handleReinvestSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-         if (!reinvestAmount) {
-            alert('Please enter an amount to reinvest.');
+    const handleSubmitRequest = () => {
+        const amount = parseFloat(newRequest.amount);
+        if (isNaN(amount) || amount <= 0) {
+            alert('Please enter a valid amount.');
             return;
         }
-        if (parseFloat(reinvestAmount) > availableProfit) {
-            alert('Reinvestment amount cannot exceed available profit.');
+        if (amount > availableForWithdrawal) {
+            alert('Withdrawal amount exceeds available profit.');
             return;
         }
-        alert(`$${reinvestAmount} has been reinvested into the community fund.`);
-        setReinvestAmount('');
+        onAddWithdrawalRequest({
+            amount,
+            bankName: newRequest.bankName,
+            accountNumber: newRequest.accountNumber,
+        });
+
+        setIsModalOpen(false);
+        setNewRequest({ amount: '', bankName: 'Chase', accountNumber: '...6789' });
     };
 
     return (
         <div className="space-y-8">
-            <div>
-                <h2 className="text-3xl font-bold text-white">Withdraw & Reinvest</h2>
-                <p className="text-gray-400 mt-1">Manage your profits by withdrawing to your bank or reinvesting into the community fund.</p>
+            <div className="flex flex-wrap justify-between items-center gap-4">
+                <div>
+                    <h2 className="text-3xl font-bold text-white">Withdraw Funds</h2>
+                    <p className="text-gray-400 mt-1">Request a withdrawal of your profits from the club.</p>
+                </div>
+                <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300"
+                >
+                    New Withdrawal Request
+                </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Withdraw Profits Section */}
-                <div className="bg-gray-800 p-6 rounded-lg shadow-lg space-y-6 flex flex-col">
-                    <div>
-                        <h3 className="text-xl font-bold text-white">Withdraw Profits</h3>
-                        <p className="text-sm text-gray-400 mt-1">Request a withdrawal of your available profits to your local bank account. Requests are processed within 3-5 business days.</p>
-                    </div>
+            <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h3 className="text-xl font-bold text-white mb-2">Available for Withdrawal</h3>
+                <p className="text-3xl font-bold text-green-400">${availableForWithdrawal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="text-sm text-gray-400 mt-1">This is the portion of your investment profit that you can withdraw.</p>
+            </div>
 
-                    <div className="bg-gray-900/50 p-4 rounded-lg">
-                        <p className="text-sm text-gray-400">Available for Withdrawal</p>
-                        <p className="text-2xl font-bold text-white">${availableProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                    </div>
-
-                    <form onSubmit={handleWithdrawSubmit} className="space-y-4 flex-grow flex flex-col">
-                        <div className="flex-grow space-y-4">
-                            <div>
-                                <label htmlFor="withdraw-amount" className="block text-sm font-medium text-gray-300">Amount to Withdraw (USD)</label>
-                                <div className="mt-1 relative rounded-md shadow-sm">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span className="text-gray-500 sm:text-sm">$</span>
-                                    </div>
-                                    <input
-                                        type="number"
-                                        name="withdraw-amount"
-                                        id="withdraw-amount"
-                                        className="w-full bg-gray-700 text-white rounded-md p-2 pl-7 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder={availableProfit.toFixed(2)}
-                                        value={withdrawAmount}
-                                        onChange={(e) => setWithdrawAmount(e.target.value)}
-                                        max={availableProfit}
-                                        step="0.01"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label htmlFor="bank-name" className="block text-sm font-medium text-gray-300">Bank Name</label>
-                                <select
-                                    id="bank-name"
-                                    name="bank-name"
-                                    className="mt-1 block w-full pl-3 pr-10 py-2 bg-gray-700 border-gray-600 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                                    value={selectedBank}
-                                    onChange={(e) => setSelectedBank(e.target.value)}
-                                    required
-                                >
-                                    <option value="" disabled>Select your bank</option>
-                                    {BANKS.map(bank => <option key={bank} value={bank}>{bank}</option>)}
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label htmlFor="account-number" className="block text-sm font-medium text-gray-300">Account Number</label>
-                                <input
-                                    type="text"
-                                    name="account-number"
-                                    id="account-number"
-                                    className="mt-1 w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Your 10-digit account number"
-                                    value={accountNumber}
-                                    onChange={(e) => setAccountNumber(e.target.value)}
-                                    maxLength={10}
-                                    pattern="\d{10}"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">
-                            Submit Withdrawal Request
-                        </button>
-                    </form>
-                </div>
-
-                {/* Reinvest Profits Section */}
-                <div className="bg-gray-800 p-6 rounded-lg shadow-lg space-y-6 flex flex-col">
-                    <div>
-                        <h3 className="text-xl font-bold text-white">Reinvest Profits</h3>
-                        <p className="text-sm text-gray-400 mt-1">Grow your contribution by reinvesting your profits back into the community fund.</p>
-                    </div>
-                     <div className="bg-gray-900/50 p-4 rounded-lg">
-                        <p className="text-sm text-gray-400">Available for Reinvestment</p>
-                        <p className="text-2xl font-bold text-white">${availableProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                    </div>
-
-                     <form onSubmit={handleReinvestSubmit} className="space-y-4 flex-grow flex flex-col">
-                        <div className="flex-grow space-y-4">
-                            <div>
-                                <label htmlFor="reinvest-amount" className="block text-sm font-medium text-gray-300">Amount to Reinvest (USD)</label>
-                                 <div className="mt-1 relative rounded-md shadow-sm">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span className="text-gray-500 sm:text-sm">$</span>
-                                    </div>
-                                    <input
-                                        type="number"
-                                        name="reinvest-amount"
-                                        id="reinvest-amount"
-                                        className="w-full bg-gray-700 text-white rounded-md p-2 pl-7 border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder={availableProfit.toFixed(2)}
-                                        value={reinvestAmount}
-                                        onChange={(e) => setReinvestAmount(e.target.value)}
-                                        max={availableProfit}
-                                        step="0.01"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="bg-indigo-900/30 border-l-4 border-indigo-500 p-4 rounded-r-lg flex-grow flex flex-col justify-center">
-                                <h4 className="font-semibold text-indigo-300">Why Reinvest?</h4>
-                                <p className="text-sm text-gray-300 mt-1">Reinvesting your profits helps fund more community projects and businesses, increasing the potential for collective growth and higher future returns for all members.</p>
-                            </div>
-                        </div>
-
-                        <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">
-                           Reinvest Now
-                        </button>
-                    </form>
+            <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h3 className="text-xl font-bold text-white mb-6">Withdrawal History</h3>
+                 <div className="overflow-x-auto">
+                    <table className="min-w-full bg-gray-800 text-white">
+                        <thead className="bg-gray-700">
+                            <tr>
+                                <th className="text-left py-3 px-4 uppercase font-semibold text-sm">Date</th>
+                                <th className="text-right py-3 px-4 uppercase font-semibold text-sm">Amount</th>
+                                <th className="text-left py-3 px-4 uppercase font-semibold text-sm">Bank</th>
+                                <th className="text-left py-3 px-4 uppercase font-semibold text-sm">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-gray-300">
+                           {userWithdrawalHistory.map(req => (
+                                <tr key={req.id} className="border-b border-gray-700 hover:bg-gray-700/50">
+                                    <td className="py-3 px-4">{req.date}</td>
+                                    <td className="py-3 px-4 text-right font-mono">${req.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td className="py-3 px-4">{req.bankName} ({req.accountNumber})</td>
+                                    <td className="py-3 px-4">
+                                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${statusColorMap[req.status]}`}>
+                                            {req.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                           ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
+            
+             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+                <h3 className="text-lg font-bold text-white mb-4">New Withdrawal Request</h3>
+                <div className="space-y-4">
+                    <div>
+                        <label htmlFor="amount" className="block text-sm font-medium text-gray-300">Amount ($)</label>
+                        <input type="number" name="amount" id="amount" value={newRequest.amount} onChange={handleInputChange} className="mt-1 w-full bg-gray-700 text-white rounded-md p-2" placeholder={`Max $${availableForWithdrawal.toLocaleString()}`} />
+                    </div>
+                    <div>
+                         <label className="block text-sm font-medium text-gray-300">Destination Account</label>
+                         <div className="mt-1 bg-gray-700/50 p-3 rounded-md">
+                            <p className="text-white">{newRequest.bankName}</p>
+                            <p className="text-gray-400 text-sm">Account ending in {newRequest.accountNumber}</p>
+                         </div>
+                    </div>
+                </div>
+                <div className="mt-6 flex justify-end space-x-4">
+                     <button onClick={() => setIsModalOpen(false)} className="py-2 px-4 rounded-md text-gray-300 bg-gray-600 hover:bg-gray-500 transition">Cancel</button>
+                    <button onClick={handleSubmitRequest} className="py-2 px-4 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition">Submit Request</button>
+                </div>
+            </Modal>
         </div>
     );
 };

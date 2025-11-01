@@ -29,11 +29,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ currentUser, onUpdateUser }) 
         setIsEditing(false);
     };
 
-    const ProfileField: React.FC<{ label: string; value: string; name: keyof Member; isEditing: boolean; type?: string; rows?: number; }> = 
+    const ProfileField: React.FC<{ label: string; value: string; name?: keyof Member; isEditing?: boolean; type?: string; rows?: number; }> = 
     ({ label, value, name, isEditing, type = "text", rows }) => (
         <div>
             <label className="block text-sm font-medium text-gray-400">{label}</label>
-            {isEditing ? (
+            {isEditing && name ? (
                 rows ? (
                      <textarea
                         name={name}
@@ -84,6 +84,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ currentUser, onUpdateUser }) 
                     </div>
                     <div className="space-y-6 w-full">
                         <ProfileField label="Full Name" name="name" value={formData.name} isEditing={isEditing} />
+                        <ProfileField label="Club Role" value={currentUser.role} />
                         <ProfileField label="Email Address" name="email" value={formData.email} isEditing={isEditing} type="email" />
                         <ProfileField label="Phone Number" name="phone" value={formData.phone} isEditing={isEditing} type="tel" />
                         <ProfileField label="Bio" name="bio" value={formData.bio} isEditing={isEditing} rows={4} />

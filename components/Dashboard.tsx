@@ -1,135 +1,147 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import StatCard from './StatCard';
 import ActivityFeed from './ActivityFeed';
 import GeminiInsight from './GeminiInsight';
-import { INVESTMENTS, CONTRIBUTIONS, MEMBERS, FUND_USAGE } from '../constants';
-import { FundUsage, Member } from '../types';
+import Contributions from './Contributions';
+import { Investment, Member, Announcement, AnnouncementType } from '../types';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { CONTRIBUTIONS } from '../constants';
+
+const AnnouncementBanner: React.FC<{ announcement: Announcement; onDismiss: (id: number) => void }> = ({ announcement, onDismiss }) => {
+    const isUrgent = announcement.type === AnnouncementType.URGENT;
+    
+    const baseClasses = "p-4 rounded-lg flex items-start space-x-4 shadow-lg";
+    const colorClasses = isUrgent 
+        ? "bg-red-800/50 border border-red-600" 
+        : "bg-indigo-800/50 border border-indigo-600";
+    
+    const icon = isUrgent ? (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-300 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+    ) : (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-300 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+        </svg>
+    );
+
+    return (
+        <div className={`${baseClasses} ${colorClasses}`}>
+            <div className="flex-shrink-0">{icon}</div>
+            <div className="flex-1">
+                <p className={`font-bold ${isUrgent ? 'text-red-200' : 'text-indigo-200'}`}>{announcement.type}</p>
+                <p className="text-sm text-gray-200 mt-1">{announcement.message}</p>
+            </div>
+            <button onClick={() => onDismiss(announcement.id)} className="text-gray-400 hover:text-white transition">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    );
+};
+
 
 interface DashboardProps {
     currentUser: Member;
+    investments: Investment[];
     isReminderSet: boolean;
-    setIsReminderSet: (value: boolean) => void;
+    announcements: Announcement[];
 }
 
-const FundUsageIcon: React.FC<{ type: FundUsage['type'] }> = ({ type }) => {
-    const isInvestment = type === 'Investment';
-    return (
-        <div className={`rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0 ${isInvestment ? 'bg-purple-500/20 text-purple-400' : 'bg-green-500/20 text-green-400'}`}>
-            {isInvestment ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-            ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" /></svg>
-            )}
-        </div>
-    );
-}
+const Dashboard: React.FC<DashboardProps> = ({ currentUser, investments, isReminderSet, announcements }) => {
+    const [dismissedAnnouncements, setDismissedAnnouncements] = useState<number[]>([]);
 
-
-const Dashboard: React.FC<DashboardProps> = ({ currentUser, isReminderSet, setIsReminderSet }) => {
-    // --- Calculations ---
-    const totalInvested = INVESTMENTS.reduce((acc, inv) => acc + inv.amountInvested, 0);
-    const currentValue = INVESTMENTS.reduce((acc, inv) => acc + inv.currentValue, 0);
-    const communityProfit = currentValue - totalInvested;
-    const isProfitPositive = communityProfit >= 0;
-
-    const totalContributions = CONTRIBUTIONS.reduce((acc, c) => acc + c.amount, 0);
-    const myTotalContribution = CONTRIBUTIONS.filter(c => c.memberId === currentUser.id).reduce((acc, c) => acc + c.amount, 0);
+    useEffect(() => {
+        const storedDismissed = localStorage.getItem('dismissedAnnouncements');
+        if (storedDismissed) {
+            setDismissedAnnouncements(JSON.parse(storedDismissed));
+        }
+    }, []);
     
-    const myProfitShare = totalContributions > 0 ? (myTotalContribution / totalContributions) * communityProfit : 0;
-    const myWithdrawnProfit = currentUser.withdrawnProfit;
+    const handleDismiss = (id: number) => {
+        const newDismissed = [...dismissedAnnouncements, id];
+        setDismissedAnnouncements(newDismissed);
+        localStorage.setItem('dismissedAnnouncements', JSON.stringify(newDismissed));
+    };
 
-    const memberOfTheMonth = MEMBERS.find(m => m.id === 2); // Static for now
+    const activeAnnouncements = announcements.filter(a => !dismissedAnnouncements.includes(a.id));
+
+    const totalInvested = investments.reduce((acc, inv) => acc + inv.amountInvested, 0);
+    const currentValue = investments.reduce((acc, inv) => acc + inv.currentValue, 0);
+    const totalGainLoss = currentValue - totalInvested;
+    const percentageGainLoss = totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0;
+    const totalContributions = CONTRIBUTIONS.reduce((sum, c) => sum + c.amount, 0);
+
+    const portfolioData = investments.map(inv => ({
+        name: inv.ticker,
+        value: inv.currentValue,
+    }));
 
     return (
         <div className="space-y-8">
-            <div className="flex flex-wrap justify-between items-start gap-4">
-                <div>
-                    <h2 className="text-3xl font-bold text-white">Dashboard</h2>
-                    <p className="text-gray-400 mt-1">Welcome back, {currentUser.name}. Here's a snapshot of your club's performance.</p>
-                </div>
-                <button 
-                    onClick={() => setIsReminderSet(!isReminderSet)}
-                    className={`font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 ${
-                        isReminderSet 
-                        ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-                        : 'bg-gray-600 hover:bg-gray-500 text-gray-200'
-                    }`}
-                >
-                    {isReminderSet ? 'Disable Contribution Reminder' : 'Set Monthly Contribution Reminder'}
-                </button>
-            </div>
-            
-            {isReminderSet && (
-                <div className="bg-yellow-500/20 text-yellow-300 p-4 rounded-lg flex items-center space-x-3">
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-                    <p className="font-semibold">Monthly contribution reminder is active.</p>
+            {/* Announcements Section */}
+            {activeAnnouncements.length > 0 && (
+                <div className="space-y-4">
+                    {activeAnnouncements.map(announcement => (
+                        <AnnouncementBanner key={announcement.id} announcement={announcement} onDismiss={handleDismiss} />
+                    ))}
                 </div>
             )}
-
-            {/* My Analytics */}
-            <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-white">My Analytics</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <StatCard title="My Total Contribution" value={`$${myTotalContribution.toLocaleString()}`} />
-                    <StatCard title="My Total Profit" value={`$${myProfitShare.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} isPositive={myProfitShare >= 0} />
-                    <StatCard title="My Withdrawn Profit" value={`$${myWithdrawnProfit.toLocaleString()}`} />
-                </div>
+            
+            <div>
+                <h2 className="text-3xl font-bold text-white">Welcome back, {currentUser.name}!</h2>
+                <p className="text-gray-400 mt-1">Here's a snapshot of your club's performance.</p>
             </div>
-
-            {/* Community Analytics */}
-            <div className="space-y-4">
-                 <h3 className="text-xl font-semibold text-white">Community Analytics</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                     <StatCard 
-                        title="Total Portfolio Value" 
-                        value={`$${currentValue.toLocaleString()}`} 
-                    />
-                    <StatCard 
-                        title="Total Contributions" 
-                        value={`$${totalContributions.toLocaleString()}`}
-                    />
-                    <StatCard
-                        title="Community Profit"
-                        value={`${isProfitPositive ? '+' : ''}$${communityProfit.toLocaleString()}`}
-                        isPositive={isProfitPositive}
-                    />
-                </div>
+            
+            {/* Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard
+                    title="Total Portfolio Value"
+                    value={`$${currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    change={`${percentageGainLoss.toFixed(2)}%`}
+                    isPositive={totalGainLoss >= 0}
+                />
+                <StatCard
+                    title="Total Contributions"
+                    value={`$${totalContributions.toLocaleString()}`}
+                />
+                <StatCard
+                    title="Net Gain/Loss"
+                    value={`$${totalGainLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    isPositive={totalGainLoss >= 0}
+                />
+                <StatCard
+                    title="Your Withdrawn Profit"
+                    value={`$${currentUser.withdrawnProfit.toLocaleString()}`}
+                />
             </div>
-
-            {/* Member of the Month & Fund Usage */}
+            
+            {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-1">
-                    <div className="bg-gray-800 p-6 rounded-lg shadow-lg h-full flex flex-col items-center justify-center text-center">
-                        <h3 className="text-lg font-semibold text-white mb-4">Member of the Month</h3>
-                        <img src={memberOfTheMonth?.avatarUrl} alt={memberOfTheMonth?.name} className="w-20 h-20 rounded-full border-4 border-indigo-500 shadow-lg"/>
-                        <p className="text-xl font-bold text-white mt-4">{memberOfTheMonth?.name}</p>
-                        <p className="text-sm text-indigo-400">For outstanding participation</p>
+                <div className="lg:col-span-2 bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Portfolio Overview</h3>
+                     <div style={{ width: '100%', height: 300 }}>
+                        <ResponsiveContainer>
+                            <LineChart data={portfolioData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
+                                <XAxis dataKey="name" tick={{ fill: '#a0aec0' }} />
+                                <YAxis tick={{ fill: '#a0aec0' }} unit="$" />
+                                <Tooltip contentStyle={{ backgroundColor: '#1a202c', border: '1px solid #4a5568' }} />
+                                <Legend />
+                                <Line type="monotone" dataKey="value" stroke="#8884d8" strokeWidth={2} activeDot={{ r: 8 }} />
+                            </LineChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
-                <div className="lg:col-span-2 bg-gray-800 p-6 rounded-lg shadow-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Fund Usage</h3>
-                    <ul className="space-y-3">
-                        {FUND_USAGE.slice(0, 4).map(usage => (
-                            <li key={usage.id} className="flex items-center space-x-4">
-                               <FundUsageIcon type={usage.type} />
-                                <div className="flex-1">
-                                    <p className="text-sm text-gray-200">{usage.description}</p>
-                                    <p className="text-xs text-gray-500">{usage.date}</p>
-                                </div>
-                                <span className={`text-sm font-semibold ${usage.type === 'Investment' ? 'text-purple-400' : 'text-green-400'}`}>
-                                    ${usage.amount.toLocaleString()}
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
+                <div className="lg:col-span-1">
+                    <ActivityFeed />
                 </div>
             </div>
 
-
-            {/* Activity Feed & AI Insights */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
-                    <ActivityFeed />
+                     <Contributions isReminderSet={isReminderSet} setIsReminderSet={() => {}} />
                 </div>
                 <div className="lg:col-span-1">
                     <GeminiInsight />
