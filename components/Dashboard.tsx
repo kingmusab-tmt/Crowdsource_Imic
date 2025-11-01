@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import StatCard from './StatCard';
 import ActivityFeed from './ActivityFeed';
 import GeminiInsight from './GeminiInsight';
 import Contributions from './Contributions';
-import { Investment, Member, Announcement, AnnouncementType } from '../types';
+import { Investment, Member, Announcement, AnnouncementType, ContributionGoal, Transaction, TransactionType } from '../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { CONTRIBUTIONS } from '../constants';
 
 const AnnouncementBanner: React.FC<{ announcement: Announcement; onDismiss: (id: number) => void }> = ({ announcement, onDismiss }) => {
     const isUrgent = announcement.type === AnnouncementType.URGENT;
@@ -41,15 +40,79 @@ const AnnouncementBanner: React.FC<{ announcement: Announcement; onDismiss: (id:
     );
 };
 
+const ContributionGoalTracker: React.FC<{ goal: ContributionGoal, transactions: Transaction[], members: Member[] }> = ({ goal, transactions, members }) => {
+    const { targetAmount, deadline } = goal;
+    
+    const deadlineDate = new Date(deadline);
+    const startDate = new Date(deadlineDate.getFullYear(), deadlineDate.getMonth(), 1);
+    
+    const raisedAmount = useMemo(() => {
+        return transactions
+            .filter(tx => {
+                const txDate = new Date(tx.date);
+                return tx.type === TransactionType.DEPOSIT && txDate >= startDate && txDate <= deadlineDate;
+            })
+            .reduce((sum, tx) => sum + tx.amount, 0);
+    }, [transactions, startDate, deadlineDate]);
+
+    const progress = Math.min((raisedAmount / targetAmount) * 100, 100);
+    const daysLeft = Math.max(0, Math.ceil((new Date(deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+    
+    const contributors = useMemo(() => {
+        const contributorIds = new Set(
+            transactions
+                .filter(tx => {
+                    const txDate = new Date(tx.date);
+                    return tx.type === TransactionType.DEPOSIT && tx.memberId && txDate >= startDate && txDate <= deadlineDate;
+                })
+                .map(tx => tx.memberId)
+        );
+        return Array.from(contributorIds).map(id => members.find(m => m.id === id)).filter(Boolean) as Member[];
+    }, [transactions, members, startDate, deadlineDate]);
+
+
+    return (
+        <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <h3 className="text-lg font-semibold text-white">Monthly Contribution Goal</h3>
+            <div className="flex justify-between items-baseline mt-2">
+                <span className="text-3xl font-bold text-white">${raisedAmount.toLocaleString()}</span>
+                <span className="text-sm text-gray-400">raised of ${targetAmount.toLocaleString()}</span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-3 my-3">
+                <div className="bg-indigo-500 h-3 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+                <span className="font-semibold text-indigo-300">{progress.toFixed(0)}% Complete</span>
+                <span className="text-gray-400">{daysLeft} days remaining</span>
+            </div>
+            <div className="mt-4">
+                <p className="text-xs text-gray-500 mb-2">Contributors this month:</p>
+                <div className="flex -space-x-2">
+                    {contributors.slice(0, 7).map(member => (
+                        <img key={member.id} src={member.avatarUrl} alt={member.name} title={member.name} className="w-8 h-8 rounded-full border-2 border-gray-800" />
+                    ))}
+                    {contributors.length > 7 && (
+                        <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800">
+                            +{contributors.length - 7}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 interface DashboardProps {
     currentUser: Member;
     investments: Investment[];
     isReminderSet: boolean;
     announcements: Announcement[];
+    contributionGoal: ContributionGoal;
+    transactions: Transaction[];
+    members: Member[];
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ currentUser, investments, isReminderSet, announcements }) => {
+const Dashboard: React.FC<DashboardProps> = ({ currentUser, investments, isReminderSet, announcements, contributionGoal, transactions, members }) => {
     const [dismissedAnnouncements, setDismissedAnnouncements] = useState<number[]>([]);
 
     useEffect(() => {
@@ -71,7 +134,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser, investments, isRemin
     const currentValue = investments.reduce((acc, inv) => acc + inv.currentValue, 0);
     const totalGainLoss = currentValue - totalInvested;
     const percentageGainLoss = totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0;
-    const totalContributions = CONTRIBUTIONS.reduce((sum, c) => sum + c.amount, 0);
+    const totalContributions = transactions.filter(tx => tx.type === 'Deposit').reduce((sum, c) => sum + c.amount, 0);
 
     const portfolioData = investments.map(inv => ({
         name: inv.ticker,
@@ -93,28 +156,34 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser, investments, isRemin
                 <h2 className="text-3xl font-bold text-white">Welcome back, {currentUser.name}!</h2>
                 <p className="text-gray-400 mt-1">Here's a snapshot of your club's performance.</p>
             </div>
-            
-            {/* Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard
-                    title="Total Portfolio Value"
-                    value={`$${currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    change={`${percentageGainLoss.toFixed(2)}%`}
-                    isPositive={totalGainLoss >= 0}
-                />
-                <StatCard
-                    title="Total Contributions"
-                    value={`$${totalContributions.toLocaleString()}`}
-                />
-                <StatCard
-                    title="Net Gain/Loss"
-                    value={`$${totalGainLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    isPositive={totalGainLoss >= 0}
-                />
-                <StatCard
-                    title="Your Withdrawn Profit"
-                    value={`$${currentUser.withdrawnProfit.toLocaleString()}`}
-                />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <StatCard
+                            title="Total Portfolio Value"
+                            value={`$${currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            change={`${percentageGainLoss.toFixed(2)}%`}
+                            isPositive={totalGainLoss >= 0}
+                        />
+                        <StatCard
+                            title="Total Contributions"
+                            value={`$${totalContributions.toLocaleString()}`}
+                        />
+                         <StatCard
+                            title="Net Gain/Loss"
+                            value={`$${totalGainLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            isPositive={totalGainLoss >= 0}
+                        />
+                        <StatCard
+                            title="Your Withdrawn Profit"
+                            value={`$${currentUser.withdrawnProfit.toLocaleString()}`}
+                        />
+                    </div>
+                </div>
+                <div className="lg:col-span-1">
+                     <ContributionGoalTracker goal={contributionGoal} transactions={transactions} members={members} />
+                </div>
             </div>
             
             {/* Main Content Grid */}

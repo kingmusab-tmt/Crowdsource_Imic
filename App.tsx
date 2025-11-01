@@ -16,8 +16,8 @@ import Deposit from './components/Deposit';
 import Withdrawal from './components/Withdrawal';
 import Transactions from './components/Transactions';
 import LoginPage from './components/LoginPage';
-import { View, Member, Role, Proposal, ProposalStatus, Investment, Notification, NotificationType, Event, EventStatus, BusinessListing, BusinessStatus, FinancialAssistanceRequest, AssistanceRequestStatus, CommentableItemType, Comment, Transaction, TransactionType, TransactionStatus, WithdrawalRequest, WithdrawalStatus, Announcement, AnnouncementType } from './types';
-import { MEMBERS, PROPOSALS as initialProposals, INVESTMENTS as initialInvestments, NOTIFICATIONS as initialNotifications, EVENTS as initialEvents, BUSINESS_LISTINGS as initialBusinessListings, FINANCIAL_ASSISTANCE_REQUESTS as initialAssistanceRequests, TRANSACTIONS as initialTransactions, INITIAL_WITHDRAWAL_REQUESTS, INITIAL_ANNOUNCEMENTS } from './constants';
+import { View, Member, Role, Proposal, ProposalStatus, Investment, Notification, NotificationType, Event, EventStatus, BusinessListing, BusinessStatus, FinancialAssistanceRequest, AssistanceRequestStatus, CommentableItemType, Comment, Transaction, TransactionType, TransactionStatus, WithdrawalRequest, WithdrawalStatus, Announcement, AnnouncementType, ContributionGoal } from './types';
+import { MEMBERS, PROPOSALS as initialProposals, INVESTMENTS as initialInvestments, NOTIFICATIONS as initialNotifications, EVENTS as initialEvents, BUSINESS_LISTINGS as initialBusinessListings, FINANCIAL_ASSISTANCE_REQUESTS as initialAssistanceRequests, TRANSACTIONS as initialTransactions, INITIAL_WITHDRAWAL_REQUESTS, INITIAL_ANNOUNCEMENTS, CONTRIBUTION_GOAL } from './constants';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -37,6 +37,8 @@ const App: React.FC = () => {
     const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
     const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>(INITIAL_WITHDRAWAL_REQUESTS);
     const [announcements, setAnnouncements] = useState<Announcement[]>(INITIAL_ANNOUNCEMENTS);
+    const [contributionGoal, setContributionGoal] = useState<ContributionGoal>(CONTRIBUTION_GOAL);
+
 
     // --- Login/Logout ---
     useEffect(() => {
@@ -348,7 +350,7 @@ const App: React.FC = () => {
         if (!currentUser) return null;
         switch (currentView) {
             case View.DASHBOARD:
-                return <Dashboard currentUser={currentUser} investments={investments} isReminderSet={isReminderSet} announcements={announcements} />;
+                return <Dashboard currentUser={currentUser} investments={investments} isReminderSet={isReminderSet} announcements={announcements} contributionGoal={contributionGoal} transactions={transactions} members={members} />;
             case View.INVESTMENTS:
                 return <Investments investments={investments} onAddInvestment={handleAddInvestment} />;
             case View.PROPOSALS:
@@ -389,7 +391,7 @@ const App: React.FC = () => {
                     onDeleteAnnouncement={handleDeleteAnnouncement}
                 /> : <div>Access Denied</div>;
             default:
-                return <Dashboard currentUser={currentUser} investments={investments} isReminderSet={isReminderSet} announcements={announcements} />;
+                return <Dashboard currentUser={currentUser} investments={investments} isReminderSet={isReminderSet} announcements={announcements} contributionGoal={contributionGoal} transactions={transactions} members={members} />;
         }
     };
     

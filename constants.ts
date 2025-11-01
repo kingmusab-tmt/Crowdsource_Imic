@@ -1,4 +1,4 @@
-import { Member, Role, Proposal, ProposalStatus, Investment, Contribution, Transaction, TransactionType, TransactionStatus, Notification, NotificationType, Event, EventStatus, BusinessListing, BusinessStatus, FinancialAssistanceRequest, AssistanceRequestStatus, WithdrawalRequest, WithdrawalStatus, Comment, Announcement, AnnouncementType } from './types';
+import { Member, Role, Proposal, ProposalStatus, Investment, Contribution, Transaction, TransactionType, TransactionStatus, Notification, NotificationType, Event, EventStatus, BusinessListing, BusinessStatus, FinancialAssistanceRequest, AssistanceRequestStatus, WithdrawalRequest, WithdrawalStatus, Comment, Announcement, AnnouncementType, ContributionGoal } from './types';
 
 export const MEMBERS: Member[] = [
     { id: 1, name: 'Admin User', avatarUrl: 'https://i.pravatar.cc/150?u=1', contributionStatus: 'Paid', role: Role.ADMIN, withdrawnProfit: 500, availableProfit: 250, email: 'admin@club.com', phone: '123-456-7890', bio: 'Founding member and administrator of the investment club.' },
@@ -35,7 +35,7 @@ export const INVESTMENT_HISTORY: { [key: string]: { date: string; value: number 
     ],
     'IVV': [
         { date: 'Jan', value: 470 }, { date: 'Feb', value: 475 }, { date: 'Mar', value: 480 },
-        { date: 'Apr', value: 485 }, { date: 'May', value: 490 }, { date: 'Jun', value: 495 },
+        { date: 'Apr', value: 485 }, { date: 'May', 'value': 490 }, { date: 'Jun', value: 495 },
     ],
 };
 
@@ -48,13 +48,20 @@ export const CONTRIBUTIONS: Contribution[] = [
     { id: 6, memberId: 3, amount: 100, date: '2023-05-01' },
 ];
 
+// NOTE: This now represents the INITIAL state for transactions. The app state is managed in App.tsx
 export const TRANSACTIONS: Transaction[] = [
-    { id: 1, memberId: 1, description: 'Monthly Contribution', type: TransactionType.DEPOSIT, status: TransactionStatus.COMPLETED, date: '2023-06-01', amount: 100 },
-    { id: 2, memberId: 2, description: 'Investment in AAPL', type: TransactionType.INVESTMENT, status: TransactionStatus.COMPLETED, date: '2023-05-15', amount: -1000 },
-    { id: 3, memberId: 1, description: 'Profit Withdrawal', type: TransactionType.WITHDRAWAL, status: TransactionStatus.PENDING, date: '2023-05-10', amount: -50 },
-    { id: 4, memberId: 4, description: 'Monthly Contribution', type: TransactionType.DEPOSIT, status: TransactionStatus.COMPLETED, date: '2023-05-01', amount: 100 },
+    { id: 1, memberId: 1, description: 'Monthly Contribution', type: TransactionType.DEPOSIT, status: TransactionStatus.COMPLETED, date: new Date(new Date().setDate(1)).toISOString().split('T')[0], amount: 100 },
+    { id: 2, memberId: 2, description: 'Monthly Contribution', type: TransactionType.DEPOSIT, status: TransactionStatus.COMPLETED, date: new Date(new Date().setDate(2)).toISOString().split('T')[0], amount: 100 },
+    { id: 3, memberId: 4, description: 'Monthly Contribution', type: TransactionType.DEPOSIT, status: TransactionStatus.COMPLETED, date: new Date(new Date().setDate(3)).toISOString().split('T')[0], amount: 100 },
+    { id: 4, memberId: 1, description: 'Profit Withdrawal', type: TransactionType.WITHDRAWAL, status: TransactionStatus.PENDING, date: '2023-05-10', amount: -50 },
     { id: 5, description: 'Dividend Reinvestment from IVV', type: TransactionType.REINVESTMENT, status: TransactionStatus.COMPLETED, date: '2023-04-20', amount: 25.50 },
+    { id: 6, memberId: 3, description: 'Investment in TSLA', type: TransactionType.INVESTMENT, status: TransactionStatus.COMPLETED, date: '2023-05-15', amount: -500 },
 ];
+
+export const CONTRIBUTION_GOAL: ContributionGoal = {
+    targetAmount: 1000,
+    deadline: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0], // End of current month
+};
 
 export const NOTIFICATIONS: Notification[] = [
     { id: 1, message: "A new proposal 'Invest $2,000 in NVIDIA (NVDA)' has been created.", timestamp: '1 day ago', read: false, viewed: false, type: NotificationType.PROPOSAL },
